@@ -12,7 +12,8 @@ from .models import AppConfig
 from .platforms import PlatformIntegration, get_platform_integration
 from .storage import StateRepository
 from .timer import PomodoroTimer, TimerPhase, TimerStatus
-from .ui import SettingsWindow, TreeWindow
+from .sound import SoundManager
+from .ui import SettingsWindow, SoundSettingsWindow, TreeWindow
 
 
 class PomodoroApp:
@@ -24,6 +25,7 @@ class PomodoroApp:
         self.repository = StateRepository(self.app_name)
         self.daily_state, self.stats = self.repository.load_state()
         self.timer = PomodoroTimer(self.config)
+        self.sound_manager = SoundManager(self.platform)
         self.root = tk.Tk()
         self.root.withdraw()
         self._window_icon = tk.PhotoImage(file=str(image_path("icon.png")))
@@ -36,6 +38,7 @@ class PomodoroApp:
             self.positions,
         )
         self.settings_window = SettingsWindow(self.root, self._save_settings)
+        self.sound_settings_window = SoundSettingsWindow(self.root, self._save_settings)
         self.icon = pystray.Icon(
             self.app_name,
             self._load_tray_icon(),
@@ -51,6 +54,7 @@ class PomodoroApp:
 
     def _tick(self) -> None:
         self._sync_state()
+        self.sound_manager.update()
         event = self.timer.tick()
         if event == "focus_completed":
             self._handle_focus_completed()
@@ -61,6 +65,7 @@ class PomodoroApp:
 
     def _handle_focus_completed(self) -> None:
         self.platform.notify("番茄完成", "休息开始，1 秒后会在树上长出一个番茄。")
+        self.sound_manager.play_end_sound(self.config.end_sound_mode, self.config.end_sound_path)
         self.tree_window.show(self.daily_state, self.stats.total_completed, self._status_text())
         self.root.after(1000, self._award_tomato)
 
@@ -73,6 +78,8 @@ class PomodoroApp:
         self._refresh_views()
 
     def _start_or_resume(self) -> None:
+        if self.config.end_sound_stop_mode == "next_focus":
+            self.sound_manager.stop()
         self.timer.start_or_resume()
         self.platform.notify("番茄钟启动", "计时已开始。")
         self._refresh_views()
@@ -99,6 +106,9 @@ class PomodoroApp:
 
     def _show_settings(self) -> None:
         self.settings_window.show(self.config)
+
+    def _show_sound_settings(self) -> None:
+        self.sound_settings_window.show(self.config)
 
     def _save_settings(self, config: AppConfig) -> None:
         self.config = config
@@ -145,8 +155,13 @@ class PomodoroApp:
             MenuItem("重置当前阶段", self._on_menu(self._reset_phase)),
             MenuItem("跳过当前阶段", self._on_menu(self._skip_phase)),
             MenuItem("设置", self._on_menu(self._show_settings)),
+            MenuItem("提示音设置", self._on_menu(self._show_sound_settings)),
+            MenuItem("停止音乐", self._on_menu(self._stop_music)),
             MenuItem("退出", self._on_menu(self._quit)),
         )
+
+    def _stop_music(self) -> None:
+        self.sound_manager.stop()
 
     def _on_menu(self, callback):
         def handler(icon, item) -> None:

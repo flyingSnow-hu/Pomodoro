@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 import tkinter as tk
-from tkinter import messagebox, ttk
+from tkinter import filedialog, messagebox, ttk
 from typing import Callable
+from pathlib import Path
 
 from PIL import Image, ImageTk
 
@@ -166,4 +167,99 @@ class SettingsWindow:
             return
         self._on_save(config)
         messagebox.showinfo("保存成功", "设置已更新，当前阶段计时已重置。", parent=self._window)
+        self.hide()
+
+
+class SoundSettingsWindow:
+    def __init__(self, root: tk.Misc, on_save: Callable[[AppConfig], None]) -> None:
+        self._root = root
+        self._on_save = on_save
+        self._window = tk.Toplevel(root)
+        self._window.title("番茄钟提示音设置")
+        self._window.withdraw()
+        self._window.resizable(False, False)
+        self._window.protocol("WM_DELETE_WINDOW", self.hide)
+
+        self._mode_var = tk.StringVar(value="system")
+        self._stop_mode_var = tk.StringVar(value="next_focus")
+        self._path_var = tk.StringVar(value="")
+        self._current_config = AppConfig()
+
+        container = ttk.Frame(self._window, padding=18)
+        container.grid(row=0, column=0, sticky="nsew")
+
+        ttk.Label(container, text="番茄结束提示音").grid(row=0, column=0, sticky="w")
+        ttk.Radiobutton(container, text="系统提示音", value="system", variable=self._mode_var).grid(row=1, column=0, sticky="w", pady=4)
+        ttk.Radiobutton(container, text="自选音乐文件", value="file", variable=self._mode_var).grid(row=2, column=0, sticky="w", pady=4)
+        ttk.Radiobutton(container, text="关闭提示音", value="off", variable=self._mode_var).grid(row=3, column=0, sticky="w", pady=4)
+
+        ttk.Label(container, text="音乐文件路径").grid(row=4, column=0, sticky="w", pady=(10, 4))
+        path_row = ttk.Frame(container)
+        path_row.grid(row=5, column=0, sticky="ew")
+        self._path_entry = ttk.Entry(path_row, textvariable=self._path_var, width=40)
+        self._path_entry.grid(row=0, column=0, sticky="ew")
+        ttk.Button(path_row, text="选择文件", command=self._pick_file).grid(row=0, column=1, padx=(8, 0))
+        path_row.columnconfigure(0, weight=1)
+
+        ttk.Label(container, text="自选音乐停止方式").grid(row=6, column=0, sticky="w", pady=(10, 4))
+        ttk.Radiobutton(container, text="播完一遍自动停止", value="once", variable=self._stop_mode_var).grid(row=7, column=0, sticky="w", pady=4)
+        ttk.Radiobutton(container, text="下次番茄钟开始时停止", value="next_focus", variable=self._stop_mode_var).grid(row=8, column=0, sticky="w", pady=4)
+        ttk.Radiobutton(container, text="手动停止", value="manual", variable=self._stop_mode_var).grid(row=9, column=0, sticky="w", pady=4)
+
+        ttk.Button(container, text="保存提示音设置", command=self._save).grid(row=10, column=0, sticky="ew", pady=(14, 0))
+
+    def show(self, config: AppConfig) -> None:
+        self._current_config = config
+        self._mode_var.set(config.end_sound_mode)
+        self._stop_mode_var.set(config.end_sound_stop_mode)
+        self._path_var.set(config.end_sound_path)
+        self._window.deiconify()
+        self._window.lift()
+        self._window.focus_force()
+
+    def hide(self) -> None:
+        self._window.withdraw()
+
+    def _pick_file(self) -> None:
+        filename = filedialog.askopenfilename(
+            parent=self._window,
+            title="选择番茄结束时播放的音乐文件",
+            filetypes=[
+                ("音频文件", "*.mp3 *.wav *.ogg *.flac *.m4a"),
+                ("所有文件", "*.*"),
+            ],
+        )
+        if filename:
+            self._path_var.set(filename)
+
+    def _save(self) -> None:
+        current = self._current_config
+        config = AppConfig(
+            focus_minutes=current.focus_minutes,
+            short_break_minutes=current.short_break_minutes,
+            long_break_every=current.long_break_every,
+            long_break_minutes=current.long_break_minutes,
+            end_sound_mode=self._mode_var.get(),
+            end_sound_path=self._path_var.get().strip(),
+            end_sound_stop_mode=self._stop_mode_var.get(),
+        )
+        if config.end_sound_mode == "file":
+            if not config.end_sound_path:
+                messagebox.showerror("输入无效", "选择自选音乐文件时，请先指定文件路径。", parent=self._window)
+                return
+            if not Path(config.end_sound_path).exists():
+                messagebox.showerror("输入无效", "所选音乐文件不存在，请重新选择。", parent=self._window)
+                return
+        if config.end_sound_mode != "file":
+            config = AppConfig(
+                focus_minutes=current.focus_minutes,
+                short_break_minutes=current.short_break_minutes,
+                long_break_every=current.long_break_every,
+                long_break_minutes=current.long_break_minutes,
+                end_sound_mode=config.end_sound_mode,
+                end_sound_path="",
+                end_sound_stop_mode=config.end_sound_stop_mode,
+            )
+        self._on_save(config)
+        messagebox.showinfo("保存成功", "提示音设置已更新。", parent=self._window)
         self.hide()

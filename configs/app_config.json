@@ -2,5 +2,8 @@
   "focus_minutes": 20,
   "short_break_minutes": 5,
   "long_break_every": 4,
-  "long_break_minutes": 15
+  "long_break_minutes": 15,
+  "end_sound_mode": "system",
+  "end_sound_path": "",
+  "end_sound_stop_mode": "next_focus"
 }

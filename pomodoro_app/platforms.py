@@ -10,6 +10,9 @@ class PlatformIntegration(ABC):
     def notify(self, title: str, message: str) -> None:
         raise NotImplementedError
 
+    def play_system_sound(self) -> None:
+        return
+
 
 class WindowsPlatformIntegration(PlatformIntegration):
     def __init__(self) -> None:
@@ -29,6 +32,14 @@ class WindowsPlatformIntegration(PlatformIntegration):
         except Exception:
             return
 
+    def play_system_sound(self) -> None:
+        try:
+            import winsound
+
+            winsound.MessageBeep(winsound.MB_ICONASTERISK)
+        except Exception:
+            return
+
 
 class MacOSPlatformIntegration(PlatformIntegration):
     def notify(self, title: str, message: str) -> None:
@@ -43,6 +54,16 @@ class MacOSPlatformIntegration(PlatformIntegration):
         )
         try:
             subprocess.run(["osascript", "-e", command], check=False)
+        except Exception:
+            return
+
+    def play_system_sound(self) -> None:
+        try:
+            subprocess.run([
+                "osascript",
+                "-e",
+                "beep 1",
+            ], check=False)
         except Exception:
             return
 
