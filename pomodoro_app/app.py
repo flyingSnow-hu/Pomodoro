@@ -59,7 +59,8 @@ class PomodoroApp:
         if event == "focus_completed":
             self._handle_focus_completed()
         elif event == "break_completed":
-            self.platform.notify("准备开始下一轮", "休息结束，新的番茄钟已经开始计时。")
+            self.sound_manager.play_end_sound(self.config.end_sound_mode, self.config.end_sound_path)
+            self.platform.notify("准备开始下一轮", "休息结束，请手动点击开始/继续。")
         self._refresh_views()
         self.root.after(1000, self._tick)
 
@@ -78,8 +79,7 @@ class PomodoroApp:
         self._refresh_views()
 
     def _start_or_resume(self) -> None:
-        if self.config.end_sound_stop_mode == "next_focus":
-            self.sound_manager.stop()
+        self.sound_manager.stop()
         self.timer.start_or_resume()
         self.platform.notify("番茄钟启动", "计时已开始。")
         self._refresh_views()

@@ -3,7 +3,6 @@
   "short_break_minutes": 5,
   "long_break_every": 4,
   "long_break_minutes": 15,
-  "end_sound_mode": "system",
-  "end_sound_path": "",
-  "end_sound_stop_mode": "next_focus"
+  "end_sound_mode": "file",
+  "end_sound_path": "X:/download/WANDS - 世界が終るまでは… (直到世界尽头).mp3"
 }

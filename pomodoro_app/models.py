@@ -11,7 +11,6 @@ class AppConfig:
     long_break_minutes: int = 15
     end_sound_mode: str = "system"
     end_sound_path: str = ""
-    end_sound_stop_mode: str = "next_focus"
 
     @classmethod
     def from_mapping(cls, data: dict[str, object]) -> "AppConfig":
@@ -22,7 +21,6 @@ class AppConfig:
             long_break_minutes=max(1, int(data.get("long_break_minutes", cls.long_break_minutes))),
             end_sound_mode=str(data.get("end_sound_mode", cls.end_sound_mode)),
             end_sound_path=str(data.get("end_sound_path", cls.end_sound_path)),
-            end_sound_stop_mode=str(data.get("end_sound_stop_mode", cls.end_sound_stop_mode)),
         )
 
     def to_dict(self) -> dict[str, int]:

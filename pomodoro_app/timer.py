@@ -64,6 +64,7 @@ class PomodoroTimer:
             return "focus_completed"
         self.phase = TimerPhase.FOCUS
         self.remaining_seconds = self._phase_duration_seconds(self.phase)
+        self.status = TimerStatus.PAUSED
         return "break_completed"
 
     def skip_current_phase(self) -> str:

@@ -59,9 +59,6 @@ class SoundManager:
         except Exception:
             self._state = SoundPlaybackState()
 
-    def should_stop_on_next_focus(self, stop_mode: str) -> bool:
-        return self.is_playing_file() and stop_mode == "next_focus"
-
     def _try_initialize(self) -> bool:
         try:
             import pygame

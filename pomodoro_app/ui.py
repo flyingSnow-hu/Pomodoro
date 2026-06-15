@@ -122,6 +122,7 @@ class SettingsWindow:
         self._window.withdraw()
         self._window.resizable(False, False)
         self._window.protocol("WM_DELETE_WINDOW", self.hide)
+        self._current_config = AppConfig()
 
         self._entries: dict[str, ttk.Entry] = {}
         fields = [
@@ -144,6 +145,7 @@ class SettingsWindow:
         container.columnconfigure(1, weight=1)
 
     def show(self, config: AppConfig) -> None:
+        self._current_config = config
         for field_name, entry in self._entries.items():
             entry.delete(0, tk.END)
             entry.insert(0, str(getattr(config, field_name)))
@@ -155,12 +157,15 @@ class SettingsWindow:
         self._window.withdraw()
 
     def _save(self) -> None:
+        current = self._current_config
         try:
             config = AppConfig(
                 focus_minutes=max(1, int(self._entries["focus_minutes"].get())),
                 short_break_minutes=max(1, int(self._entries["short_break_minutes"].get())),
                 long_break_every=max(1, int(self._entries["long_break_every"].get())),
                 long_break_minutes=max(1, int(self._entries["long_break_minutes"].get())),
+                end_sound_mode=current.end_sound_mode,
+                end_sound_path=current.end_sound_path,
             )
         except ValueError:
             messagebox.showerror("输入无效", "请填写大于 0 的整数。", parent=self._window)
@@ -181,7 +186,6 @@ class SoundSettingsWindow:
         self._window.protocol("WM_DELETE_WINDOW", self.hide)
 
         self._mode_var = tk.StringVar(value="system")
-        self._stop_mode_var = tk.StringVar(value="next_focus")
         self._path_var = tk.StringVar(value="")
         self._current_config = AppConfig()
 
@@ -201,17 +205,15 @@ class SoundSettingsWindow:
         ttk.Button(path_row, text="选择文件", command=self._pick_file).grid(row=0, column=1, padx=(8, 0))
         path_row.columnconfigure(0, weight=1)
 
-        ttk.Label(container, text="自选音乐停止方式").grid(row=6, column=0, sticky="w", pady=(10, 4))
-        ttk.Radiobutton(container, text="播完一遍自动停止", value="once", variable=self._stop_mode_var).grid(row=7, column=0, sticky="w", pady=4)
-        ttk.Radiobutton(container, text="下次番茄钟开始时停止", value="next_focus", variable=self._stop_mode_var).grid(row=8, column=0, sticky="w", pady=4)
-        ttk.Radiobutton(container, text="手动停止", value="manual", variable=self._stop_mode_var).grid(row=9, column=0, sticky="w", pady=4)
+        ttk.Label(container, text="停止规则：手动停止、播放完一遍、下次番茄开始都会停止").grid(
+            row=6, column=0, sticky="w", pady=(10, 4)
+        )
 
-        ttk.Button(container, text="保存提示音设置", command=self._save).grid(row=10, column=0, sticky="ew", pady=(14, 0))
+        ttk.Button(container, text="保存提示音设置", command=self._save).grid(row=7, column=0, sticky="ew", pady=(14, 0))
 
     def show(self, config: AppConfig) -> None:
         self._current_config = config
         self._mode_var.set(config.end_sound_mode)
-        self._stop_mode_var.set(config.end_sound_stop_mode)
         self._path_var.set(config.end_sound_path)
         self._window.deiconify()
         self._window.lift()
@@ -241,7 +243,6 @@ class SoundSettingsWindow:
             long_break_minutes=current.long_break_minutes,
             end_sound_mode=self._mode_var.get(),
             end_sound_path=self._path_var.get().strip(),
-            end_sound_stop_mode=self._stop_mode_var.get(),
         )
         if config.end_sound_mode == "file":
             if not config.end_sound_path:
@@ -258,7 +259,6 @@ class SoundSettingsWindow:
                 long_break_minutes=current.long_break_minutes,
                 end_sound_mode=config.end_sound_mode,
                 end_sound_path="",
-                end_sound_stop_mode=config.end_sound_stop_mode,
             )
         self._on_save(config)
         messagebox.showinfo("保存成功", "提示音设置已更新。", parent=self._window)
