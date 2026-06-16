@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import tkinter as tk
+from queue import Empty, Queue
+from typing import Callable
 
 import pystray
 from PIL import Image
@@ -28,6 +30,7 @@ class PomodoroApp:
         self.sound_manager = SoundManager(self.platform)
         self.root = tk.Tk()
         self.root.withdraw()
+        self._ui_queue: Queue[Callable[[], None]] = Queue()
         self._window_icon = tk.PhotoImage(file=str(image_path("icon.png")))
         self.root.iconphoto(True, self._window_icon)
 
@@ -49,8 +52,22 @@ class PomodoroApp:
     def run(self) -> None:
         self.icon.run_detached()
         self._show_tree()
+        self.root.after(50, self._drain_ui_queue)
         self.root.after(1000, self._tick)
         self.root.mainloop()
+
+    def _drain_ui_queue(self) -> None:
+        while True:
+            try:
+                callback = self._ui_queue.get_nowait()
+            except Empty:
+                break
+            try:
+                callback()
+            except Exception:
+                # Keep the UI loop alive even if a menu action handler fails.
+                pass
+        self.root.after(50, self._drain_ui_queue)
 
     def _tick(self) -> None:
         self._sync_state()
@@ -173,7 +190,7 @@ class PomodoroApp:
 
     def _on_menu(self, callback):
         def handler(icon, item) -> None:
-            self.root.after(0, callback)
+            self._ui_queue.put(callback)
 
         return handler
 
