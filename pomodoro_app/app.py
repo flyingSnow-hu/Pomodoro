@@ -127,6 +127,7 @@ class PomodoroApp:
 
     def _refresh_views(self) -> None:
         self.icon.title = self._tray_title()
+        self.icon.menu = self._build_menu()
         if self.tree_window.visible:
             self.tree_window.refresh(self.daily_state, self.stats.total_completed, self._status_text())
 
@@ -148,16 +149,23 @@ class PomodoroApp:
         return f"{phase_label} {status_label} {self._format_seconds(snapshot.remaining_seconds)}"
 
     def _build_menu(self) -> Menu:
+        snapshot = self.timer.snapshot()
+        
+        # 根据状态判断各菜单项是否启用
+        can_start_resume = snapshot.status in {TimerStatus.IDLE, TimerStatus.PAUSED}
+        can_pause = snapshot.status == TimerStatus.RUNNING
+        can_control = snapshot.status in {TimerStatus.RUNNING, TimerStatus.PAUSED}
+        
         return Menu(
-            MenuItem("显示番茄树", self._on_menu(self._show_tree)),
-            MenuItem("开始/继续", self._on_menu(self._start_or_resume)),
-            MenuItem("暂停", self._on_menu(self._pause)),
-            MenuItem("重置当前阶段", self._on_menu(self._reset_phase)),
-            MenuItem("跳过当前阶段", self._on_menu(self._skip_phase)),
-            MenuItem("设置", self._on_menu(self._show_settings)),
-            MenuItem("提示音设置", self._on_menu(self._show_sound_settings)),
-            MenuItem("停止音乐", self._on_menu(self._stop_music)),
-            MenuItem("退出", self._on_menu(self._quit)),
+            MenuItem("显示番茄树", self._on_menu(self._show_tree), enabled=True),
+            MenuItem("开始/继续", self._on_menu(self._start_or_resume), enabled=can_start_resume),
+            MenuItem("暂停", self._on_menu(self._pause), enabled=can_pause),
+            MenuItem("重置当前阶段", self._on_menu(self._reset_phase), enabled=can_control),
+            MenuItem("跳过当前阶段", self._on_menu(self._skip_phase), enabled=can_control),
+            MenuItem("设置", self._on_menu(self._show_settings), enabled=True),
+            MenuItem("提示音设置", self._on_menu(self._show_sound_settings), enabled=True),
+            MenuItem("停止音乐", self._on_menu(self._stop_music), enabled=True),
+            MenuItem("退出", self._on_menu(self._quit), enabled=True),
         )
 
     def _stop_music(self) -> None:
